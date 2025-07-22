@@ -6,7 +6,7 @@ on:
 
 env:
   ROLLNO: 40
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/node-app
+  IMAGE_NAME: Palak730/node-app
 
 jobs:
   build-test:
@@ -35,13 +35,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ROLLNO: 40
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/node-app
+      IMAGE_NAME: Palak730/node-app
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Log in to DockerHub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "Palak730" --password-stdin
 
       - name: Build Docker image
         run: docker build -t $IMAGE_NAME:$ROLLNO .
@@ -58,4 +58,4 @@ jobs:
           script: |
             docker pull $IMAGE_NAME:$ROLLNO
             docker stop nodeapp || true && docker rm nodeapp || true
-            docker run -d -p 8000:3000 --name nodeapp $IMAGE_NAME:$ROLLNO
+            docker run -d -p 80:3000 --name nodeapp $IMAGE_NAME:$ROLLNO
