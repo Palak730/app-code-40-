@@ -1,0 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  ROLLNO: 123456
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/node-app
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./app
+
+    - name: Run tests
+      run: npm test
+      working-directory: ./app
+
+  docker-deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Build Docker image
+      run: docker build -t $IMAGE_NAME:${{ env.ROLLNO }} .
+
+    - name: Push Docker image
+      run: docker push $IMAGE_NAME:${{ env.ROLLNO }}
+
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          docker pull $IMAGE_NAME:${{ env.ROLLNO }}
+          docker stop nodeapp || true && docker rm nodeapp || true
+          docker run -d -p 80:3000 --name nodeapp $IMAGE_NAME:${{ env.ROLLNO }}
